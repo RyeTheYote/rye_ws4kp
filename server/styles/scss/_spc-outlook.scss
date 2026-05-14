@@ -8,79 +8,116 @@
 
 .weather-display .spc-outlook {
 
-	.container {
+	@include u.text-shadow();
+	font-size: 32px;
+
+	.container-categories {
 		position: relative;
 		top: 0px;
 		margin: 0px 10px;
 		box-sizing: border-box;
 		height: 300px;
 		overflow: hidden;
-	}
-
-	.risk-levels {
-		position: absolute;
-		left: 206px;
-		font-family: 'Star4000 Small';
-		font-size: 32px;
-		@include u.text-shadow();
 
 
-		.risk-level {
-			position: relative;
-			top: -14px;
-			height: 20px;
+		.risk-levels {
+			position: absolute;
+			left: 206px;
+			font-family: 'Star4000 Small';
 
-			&:nth-child(1) {
-				left: calc(20px * 5);
+
+			.risk-level {
+				position: relative;
+				top: -14px;
+				height: 20px;
+
+				&:nth-child(1) {
+					left: calc(20px * 5);
+				}
+
+				&:nth-child(2) {
+					left: calc(20px * 4);
+				}
+
+				&:nth-child(3) {
+					left: calc(20px * 3);
+				}
+
+				&:nth-child(4) {
+					left: calc(20px * 2);
+				}
+
+				&:nth-child(5) {
+					left: calc(20px * 1);
+				}
+
+				&:nth-child(6) {
+					left: calc(20px * 0);
+				}
 			}
+		}
 
-			&:nth-child(2) {
-				left: calc(20px * 4);
-			}
+		.days {
+			position: absolute;
+			top: 120px;
 
-			&:nth-child(3) {
-				left: calc(20px * 3);
-			}
+			.day {
+				height: 60px;
 
-			&:nth-child(4) {
-				left: calc(20px * 2);
-			}
+				.day-name {
+					position: absolute;
+					font-family: 'Star4000';
+					width: 200px;
+					text-align: right;
+					padding-top: 20px;
+				}
 
-			&:nth-child(5) {
-				left: calc(20px * 1);
-			}
-
-			&:nth-child(6) {
-				left: calc(20px * 0);
+				.risk-bar {
+					position: absolute;
+					width: 150px;
+					height: 40px;
+					left: 210px;
+					margin-top: 20px;
+					border: 3px outset hsl(0, 0%, 70%);
+					background: linear-gradient(0deg, hsl(0, 0%, 40%) 0%, hsl(0, 0%, 60%) 50%, hsl(0, 0%, 40%) 100%);
+				}
 			}
 		}
 	}
 
-	.days {
-		position: absolute;
-		top: 120px;
+	.container-details {
 
-		.day {
-			height: 60px;
+		display: grid;
+		grid-template-columns: repeat(3, auto);
+		grid-template-rows: repeat(3, auto);
+		gap: 0px 90px;
+		margin: 30px auto 5px auto; // align the bottom of the div with the background
+		width: fit-content;
+		line-height: 30px;
 
-			.day-name {
-				position: absolute;
-				font-family: 'Star4000';
-				font-size: 32px;
-				width: 200px;
-				text-align: right;
-				@include u.text-shadow();
-				padding-top: 20px;
+		.grid-item {
+			// Reset inherited styles that interfere with grid layout
+			width: auto;
+			height: auto;
+			padding: 0;
+			margin: 0;
+			position: relative;
+
+			// Column headers (day names)
+			&.header {
+				color: c.$column-header-text;
+				text-align: center;
 			}
 
-			.risk-bar {
-				position: absolute;
-				width: 150px;
-				height: 40px;
-				left: 210px;
-				margin-top: 20px;
-				border: 3px outset hsl(0, 0%, 70%);
-				background: linear-gradient(0deg, hsl(0, 0%, 40%) 0%, hsl(0, 0%, 60%) 50%, hsl(0, 0%, 40%) 100%);
+			// Row labels (Sunrise:, Sunset:)
+			&.row-label {
+				// color: c.$column-header-text; // screenshots show labels were white
+				text-align: right;
+			}
+
+			// Time values (sunrise/sunset)
+			&.percent {
+				text-align: center;
 			}
 		}
 	}
