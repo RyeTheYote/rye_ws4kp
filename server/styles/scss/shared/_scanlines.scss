@@ -67,7 +67,8 @@ $scan-opacity: .75;
 	&:before {
 		// position: absolute;
 		// bottom: 100%;
-		width: 100%;
+		left: 0;
+		right: 0;
 		height: $scan-width * 1;
 		z-index: $scan-z-index + 1;
 		background: $scan-color;
