@@ -217,6 +217,24 @@ Environment variables that are to be added to the default query string are prefi
 
 When using the Docker container, these environment variables are read on container start-up to generate the static redirect HTML.
 
+### Travel Forecast from TripIt
+
+The Travel Forecast display can show the weather for the destinations of your upcoming [TripIt](https://www.tripit.com/) trips (in chronological order) instead of the built-in list of cities. When no upcoming trips are found (or TripIt is not configured), it falls back to the preset city list automatically.
+
+This uses your private, read-only **calendar feed**. The feed URL is a secret, so it's supplied via the `.env` file and read server-side; it is never sent to the browser:
+
+```
+TRIPIT_ICS_URL=https://www.tripit.com/feed/ical/private/.../tripit.ics
+```
+
+Setup steps:
+
+1. In TripIt, go to **Profile → Settings → Calendar Feed** (web) or **Account → Settings → Calendar Sync** (mobile), enable the feed toggle, and copy the calendar feed URL. (See [TripIt's calendar feed help](https://help.tripit.com/en/support/solutions/articles/103000063280-calendar-feed-setup-and-sync).) For one row per trip, set the feed to show **just the trip title** rather than all detailed plans, so each trip is a single calendar event.
+2. Put that URL in `.env` as `TRIPIT_ICS_URL` (a `webcal://` URL works too).
+3. Restart the server. The Travel Forecast display will now scroll through your upcoming trip destinations in date order (results are cached for ~10 minutes).
+
+The server parses the feed for upcoming trips and resolves each destination to coordinates using the event's geo data when present, otherwise geocoding the location text. If your feed is set to "all detailed plans," events whose dates overlap are merged so a multi-segment trip still shows as a single destination. Notes/limitations: the calendar feed only covers trips from the last 90 days plus all future trips; TripIt refreshes it on its own schedule (roughly every 15 minutes to 24 hours); and the forecast shown is the *current* weather at each destination.
+
 ## Settings
 
 **Speed:** Controls the playback speed multiplier of the displays, from "Very Fast" (1.5x) to "Very Slow" (0.5x) with "Normal" being 1x

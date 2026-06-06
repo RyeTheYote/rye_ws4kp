@@ -5,6 +5,7 @@ import { readFile } from 'fs/promises';
 import {
 	weatherProxy, radarProxy, outlookProxy, mesonetProxy, forecastProxy,
 } from './proxy/handlers.mjs';
+import { tripitTrips } from './proxy/tripit.mjs';
 import playlist from './src/playlist.mjs';
 import OVERRIDES from './src/overrides.mjs';
 import cache from './proxy/cache.mjs';
@@ -134,6 +135,9 @@ if (!process.env?.STATIC) {
 
 	// Playlist route is available in server mode (not in static mode)
 	app.get('/playlist.json', playlist);
+
+	// TripIt upcoming-trips lookup for the travel forecast (reads the private calendar feed)
+	app.get('/tripit/trips.json', tripitTrips);
 }
 
 // Data endpoints - serve JSON data with long-term caching

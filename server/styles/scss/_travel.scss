@@ -1,5 +1,5 @@
-@use 'shared/_colors'as c;
-@use 'shared/_utils'as u;
+@use 'shared/_colors' as c;
+@use 'shared/_utils' as u;
 
 .weather-display .main.travel {
 	&.main {
@@ -67,6 +67,21 @@
 
 				.city {
 					left: 80px;
+					font-size: 24px;
+					top: 2px;
+				}
+
+				// optional second line under the destination name (TripIt trip title)
+				.summary {
+					left: 80px;
+					top: 30px;
+					color: c.$subtitle-color;
+					max-width: 240px;
+					font-family: 'Star4000 Small';
+					font-size: 24px;
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
 				}
 
 				.icon {

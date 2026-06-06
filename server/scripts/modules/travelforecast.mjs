@@ -1,6 +1,7 @@
 // travel forecast display
 import STATUS from './status.mjs';
 import { safeJson, safePromiseAll } from './utils/fetch.mjs';
+import { getPoint } from './utils/weather.mjs';
 import { getSmallIcon } from './icons.mjs';
 import { DateTime } from '../vendor/auto/luxon.mjs';
 import WeatherDisplay from './weatherdisplay.mjs';
@@ -40,6 +41,23 @@ class TravelForecast extends WeatherDisplay {
 			this.previousData = [];
 		}
 
+		// prefer the next upcoming TripIt trip destination; fall back to the preset city list
+		const tripForecast = await getTripForecast();
+		this.data = tripForecast ?? await this.getCityForecasts();
+
+		// test for some data available in at least one forecast
+		const hasData = this.data.some((forecast) => forecast.high);
+		if (!hasData) {
+			this.setStatus(STATUS.noData);
+			return;
+		}
+
+		this.setStatus(STATUS.loaded);
+		this.drawLongCanvas();
+	}
+
+	// fetch forecasts for the preset list of travel cities
+	async getCityForecasts() {
 		const forecastPromises = TravelCities.map(async (city, index) => {
 			try {
 				// get point then forecast
@@ -67,16 +85,8 @@ class TravelForecast extends WeatherDisplay {
 					}
 					return { name: city.Name, error: true };
 				}
-				// determine today or tomorrow (shift periods by 1 if tomorrow)
-				const todayShift = forecast.properties.periods[0].isDaytime ? 0 : 1;
 				// return a pared-down forecast
-				return {
-					today: todayShift === 0,
-					high: forecast.properties.periods[todayShift].temperature,
-					low: forecast.properties.periods[todayShift + 1].temperature,
-					name: city.Name,
-					icon: getSmallIcon(forecast.properties.periods[todayShift].icon),
-				};
+				return paredForecast(forecast, city.Name);
 			} catch (error) {
 				console.error(`Unexpected error getting Travel Forecast for ${city.Name}: ${error.message}`);
 				return { name: city.Name, error: true };
@@ -84,18 +94,7 @@ class TravelForecast extends WeatherDisplay {
 		});
 
 		// wait for all forecasts using centralized safe Promise handling
-		const forecasts = await safePromiseAll(forecastPromises);
-		this.data = forecasts;
-
-		// test for some data available in at least one forecast
-		const hasData = this.data.some((forecast) => forecast.high);
-		if (!hasData) {
-			this.setStatus(STATUS.noData);
-			return;
-		}
-
-		this.setStatus(STATUS.loaded);
-		this.drawLongCanvas();
+		return safePromiseAll(forecastPromises);
 	}
 
 	async drawLongCanvas() {
@@ -115,6 +114,10 @@ class TravelForecast extends WeatherDisplay {
 			// check for forecast data
 			if (city.icon) {
 				fillValues.city = city.name;
+				// optional second line (TripIt trip title); skip when absent or identical to the name
+				if (city.summary && city.summary !== city.name) {
+					fillValues.summary = city.summary;
+				}
 				// get temperatures and convert if necessary
 				const { low, high } = city;
 
@@ -209,6 +212,56 @@ class TravelForecast extends WeatherDisplay {
 		this.calcNavTiming();
 	}
 }
+
+// pare a weather.gov forecast down to the fields the travel row needs
+// determine today or tomorrow (shift periods by 1 if the first period isn't daytime)
+const paredForecast = (forecast, name, summary = '') => {
+	const todayShift = forecast.properties.periods[0].isDaytime ? 0 : 1;
+	return {
+		today: todayShift === 0,
+		high: forecast.properties.periods[todayShift].temperature,
+		low: forecast.properties.periods[todayShift + 1].temperature,
+		name,
+		summary,
+		icon: getSmallIcon(forecast.properties.periods[todayShift].icon),
+	};
+};
+
+// fetch the current forecast for a single resolved trip destination, or null on failure
+const getTripDestinationForecast = async (trip) => {
+	if (!trip || trip.latitude == null || trip.longitude == null) return null;
+	// resolve the destination's weather.gov grid point, then its forecast
+	const point = await getPoint(trip.latitude, trip.longitude);
+	if (!point) return null;
+	const { gridId, gridX, gridY } = point.properties;
+	const forecast = await safeJson(`https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/forecast`, {
+		data: {
+			units: settings.units.value,
+		},
+	});
+	if (!forecast) return null;
+	return paredForecast(forecast, trip.name, trip.summary);
+};
+
+// look up upcoming TripIt trips (via the server-side calendar-feed proxy) and return a
+// chronologically-ordered forecast array, one entry per trip, or null to fall back to the city list
+const getTripForecast = async () => {
+	try {
+		const result = await safeJson('/tripit/trips.json');
+		const trips = result?.trips;
+		if (!Array.isArray(trips) || trips.length === 0) return null;
+
+		// trips arrive in date order; fetch each destination's forecast in parallel and keep that order
+		const forecasts = await safePromiseAll(trips.map((trip) => getTripDestinationForecast(trip)));
+		const valid = forecasts.filter((forecast) => forecast && forecast.high);
+		return valid.length > 0 ? valid : null;
+	} catch (error) {
+		if (debugFlag('travelforecast')) {
+			console.warn(`Travel forecast TripIt lookup failed: ${error.message}`);
+		}
+		return null;
+	}
+};
 
 // effectively returns early on the first found date
 const getTravelCitiesDayName = (cities) => cities.reduce((dayName, city) => {
